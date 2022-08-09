@@ -19,6 +19,7 @@ from . import globals
 from .globals import siemens_max_det
 import nibabel as nib
 import subprocess
+import scipy.special
 
 #np.seterr(all='raise')
 
@@ -49,7 +50,7 @@ class Unwarper(object):
         self.order = 1
 
     def eval_spharm_grid(self, vendor, coeffs):
-        ''' 
+        '''
         We evaluate the spherical harmonics on a less sampled grid.
         This is a spacetime vs accuracy tradeoff.
         '''
@@ -75,7 +76,7 @@ class Unwarper(object):
         gvx, gvy, gvz = utils.meshgrid(vec, vec, vec)
         # mm
         cf = (fovmax - fovmin) / numpoints
-        
+
         # deduce the transformation from rcs to grid
         g_rcs2xyz = np.array( [[0, cf, 0, fovmin],
                                [cf, 0, 0, fovmin],
@@ -94,7 +95,7 @@ class Unwarper(object):
         log.info('with extents ' + str(fovmin) + 'mm to ' + str(fovmax) + 'mm')
         gvxyz = CV(gvx, gvy, gvz)
         _dv, _dxyz = eval_spherical_harmonics(coeffs, vendor, gvxyz)
-            
+
         return CV(_dv.x, _dv.y, _dv.z), g_xyz2rcs
 
 
@@ -107,7 +108,7 @@ class Unwarper(object):
         if self.warp:
             self.polarity = -1.
 
-        # Evaluate spherical harmonics on a smaller grid 
+        # Evaluate spherical harmonics on a smaller grid
         dv, g_xyz2rcs = self.eval_spharm_grid(self.vendor, self.coeffs)
 
         # transform RAS-coordinates into LAI-coordinates
@@ -146,12 +147,13 @@ class Unwarper(object):
         # through rotation and scaling, where any mirror
         # will impose a negation
         ones = CV(1., 1., 1.)
-        dxyz = utils.transform_coordinates_old(ones, r_rcs2lai)
+        dxyz = utils.transform_coordinates(ones, r_rcs2lai)
 
         # do the nonlinear unwarp
         if self.vendor == 'siemens':
             self.out, self.vjacout = self.non_linear_unwarp_siemens(self.vol.shape, dv, dxyz,
                                                                  m_rcs2lai, m_rcs2lai_nohalf, g_xyz2rcs)
+        del dv, g_xyz2rcs, self.vjacout
 
     def non_linear_unwarp_siemens(self, volshape, dv, dxyz, m_rcs2lai, m_rcs2lai_nohalf, g_xyz2rcs):
         ''' Performs the crux of the unwarping.
@@ -185,7 +187,7 @@ class Unwarper(object):
             else:
                 vjacdet_lps = eval_siemens_jacobian_mult(dv, dxyz)
 
-        # essentially pre-allocating everything 
+        # essentially pre-allocating everything
         out = np.zeros((nr, nc, ns), dtype=np.float32)
         fullWarp = np.zeros((nr, nc, ns, 3), dtype=np.float32)
 
@@ -204,7 +206,7 @@ class Unwarper(object):
         except ValueError:
             log.error('Failure during fslval call. Make sure fslval, fslhd, fslorient are in your PATH, and that FSLOUTPUTTYPE is set.')
             sys.exit(1)
-        
+
         pixdim2=float((subprocess.Popen(['fslval', self.name,'pixdim2'], stdout=subprocess.PIPE).communicate()[0]).strip())
         pixdim3=float((subprocess.Popen(['fslval', self.name,'pixdim3'], stdout=subprocess.PIPE).communicate()[0]).strip())
         dim1=float((subprocess.Popen(['fslval', self.name,'dim1'], stdout=subprocess.PIPE).communicate()[0]).strip())
@@ -221,7 +223,7 @@ class Unwarper(object):
                               [0.0, pixdim2, 0.0, 0.0],
                               [0.0, 0.0, pixdim3, 0.0],
                               [0.0, 0.0, 0.0, 1.0]], dtype=np.float)
-															
+
         log.info('Unwarping slice by slice')
         # for every slice
         for s in range(ns):
@@ -231,7 +233,7 @@ class Unwarper(object):
                 print(s+1, end=' ')
             else:
                 print('.', end=' ')
-                
+
             # hopefully, free memory
             gc.collect()
             # init to 0
@@ -239,7 +241,7 @@ class Unwarper(object):
             dvy.fill(0.)
             dvz.fill(0.)
             im_.fill(0.)
-            
+
             vs = np.ones(vr.shape) * s
             vrcs = CV(vr, vc, vs)
             vxyz = utils.transform_coordinates(vrcs, m_rcs2lai_nohalf)
@@ -261,7 +263,7 @@ class Unwarper(object):
             #dvx.fill(0.)
             #dvy.fill(0.)
             #dvz.fill(0.)
-            
+
             vxyzw = CV(x=vxyz.x + self.polarity * dvx,
                        y=vxyz.y + self.polarity * dvy,
                        z=vxyz.z + self.polarity * dvz)
@@ -314,10 +316,11 @@ class Unwarper(object):
             out[..., s] = im2
 
         print()
-       
+
         img=nib.Nifti1Image(fullWarp,self.m_rcs2ras)
         nib.save(img,"fullWarp_abs.nii.gz")
         # return image and the jacobian
+        del vrcsw, vfsl, vxyzw, vrcs, vxyz, vrcsg, fullWarp
         return out, vjacout
 
     def write(self, outfile):
@@ -417,16 +420,16 @@ def siemens_B(alpha, beta, x1, y1, z1, R0):
         f = np.power(r / R0, n)
         for m in range(0, n + 1):
             f2 = alpha[n, m] * np.cos(m * phi) + beta[n, m] * np.sin(m * phi)
-            _ptemp = utils.legendre(n, m, np.cos(theta))
-            #_ptemp = scipy.special.lpmv(m, n, np.cos(theta))
+            #_ptemp = utils.legendre(n, m, np.cos(theta))
+            _p = scipy.special.lpmv(m, n, np.cos(theta))
             normfact = 1
             # this is Siemens normalization
             if m > 0:
                 normfact = math.pow(-1, m) * \
                 math.sqrt(float((2 * n + 1) * factorial(n - m)) \
                           / float(2 * factorial(n + m)))
-            _p = normfact * _ptemp
-            b = b + f * _p * f2
+            _p *= normfact
+            b += f * _p * f2
     return b
 
 
@@ -450,7 +453,7 @@ def ge_D(alpha, beta, x1, y1, z1):
         for m in range(0, n + 1):
             f2 = alpha[n, m] * np.cos(m * theta) + beta[n, m] \
             * np.sin(m * theta)
-            _p = utils.legendre(n, m, np.cos(phi))
-            d = d + f * _p * f2
+            _p = scipy.special.lpmv(m, n, np.cos(phi))
+            d += f * _p * f2
     d = d / 100.0  # cm back to meters
     return d
