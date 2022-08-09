@@ -20,7 +20,7 @@ CoordsVector = namedtuple('CoordsVector', 'x, y, z')
 
 
 # this method is deprecated because it's slow and my suspicion that
-# the matrix expressions create unnecessary temp matrices which 
+# the matrix expressions create unnecessary temp matrices which
 # are costly for huge matrices
 def transform_coordinates_old(A, M):
     ''' 4x4 matrix M operates on orthogonal coordinates arrays
@@ -34,7 +34,7 @@ def transform_coordinates_old(A, M):
     B3 = A1 * M[2, 0] + A2 * M[2, 1] + A3 * M[2, 2] + M[2, 3]
     return CoordsVector(B1, B2, B3)
 
-def transform_coordinates(A, M):
+def transform_coordinates_old2(A, M):
     ''' 4x4 matrix M operates on orthogonal coordinates arrays
     A1, A2, A3 to give B1, B2, B3
     '''
@@ -54,6 +54,12 @@ def transform_coordinates(A, M):
     B1, B2, B3 = _transform_coordinates(A1, A2, A3, M)
     return CoordsVector(B1, B2, B3)
 
+from nibabel.affines import apply_affine
+
+def transform_coordinates(A, M):
+    vecs = np.asanyarray([A.x,A.y,A.z]).T
+    vecs_trans = apply_affine(M, vecs)
+    return CoordsVector(vecs_trans[...,0].T, vecs_trans[...,1].T, vecs_trans[...,2].T)
 
 def get_vol_affine(infile):
     try:
@@ -276,7 +282,7 @@ def legendre(nu, mu, x):
     x = x.astype(np.float32)
     b = _legendre(nu, mu, x)
     return b
-    
+
 
 def interp3(vol, R, C, S):
     '''
