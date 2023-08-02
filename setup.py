@@ -1,8 +1,8 @@
 from numpy.distutils.core import setup, Extension
-from numpy.distutils.misc_util import get_numpy_include_dirs 
+from numpy.distutils.misc_util import get_numpy_include_dirs
 import os, sys
 
-mods = ['gradunwarp.core.coeffs', 'gradunwarp.core.globals', 
+mods = ['gradunwarp.core.coeffs', 'gradunwarp.core.globals',
         'gradunwarp.core.__init__', 'gradunwarp.__init__',
         'gradunwarp.core.utils',
         'gradunwarp.core.unwarp_resample',
@@ -32,7 +32,7 @@ ext3 = Extension('gradunwarp.core.transform_coordinates_ext',
                  extra_compile_args=['-O3'])
 
 scripts_cmd = ['gradunwarp/core/gradient_unwarp.py',]
-        
+
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
@@ -41,12 +41,11 @@ def configuration(parent_package='', top_path=None):
     return config
 
 setup(name='gradunwarp',
-      version = 'HCP-1.2.0',
+      version = '1.3.0',
       description = 'HCP version of Gradient Unwarping Package for Python/Numpy',
       author = 'Human Connectome Project',
       py_modules  = mods,
-      ext_modules = [ext1, ext2, ext3],
+      #ext_modules = [ext1, ext2, ext3],
       scripts = scripts_cmd,
       configuration=configuration,
      )
-
