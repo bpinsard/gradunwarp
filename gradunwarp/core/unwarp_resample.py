@@ -119,14 +119,6 @@ class Unwarper(object):
         m_rcs2lai = np.dot(m_ras2lai, self.m_rcs2ras)
         m_rcs2lai_nohalf = m_rcs2lai[:, :]
 
-        # indices of image volume
-        '''
-        nr, nc, ns = self.vol.shape[:3]
-        vc3, vr3, vs3 = utils.meshgrid(np.arange(nr), np.arange(nc), np.arange(ns), dtype=np.float32)
-        vrcs = CV(x=vr3, y=vc3, z=vs3)
-        vxyz = utils.transform_coordinates(vrcs, m_rcs2lai)
-        '''
-
         # account for half-voxel shift in R and C directions
         halfvox = np.zeros((4, 4))
         halfvox[0, 3] = m_rcs2lai[0, 0] / 2.0
@@ -319,7 +311,7 @@ class Unwarper(object):
 
         print()
 
-        img=nib.Nifti1Image(fullWarp,self.m_rcs2ras)
+        img=nib.Nifti1Image(fullWarp, self.m_rcs2ras)
         nib.save(img,"fullWarp_abs.nii.gz")
         # return image and the jacobian
         del vrcsw, vfsl, vxyzw, vrcs, vxyz, vrcsg, fullWarp
