@@ -16,16 +16,16 @@ from math import sqrt, cos, pi
 # of a meshgrid belongs to this
 # x, y, z = meshgrid(np.arange(5), np.arange(6), np.arange(7))
 # cv = CoordsVector(x=x, y=y, z=z)
-CoordsVector = namedtuple('CoordsVector', 'x, y, z')
+CoordsVector = namedtuple("CoordsVector", "x, y, z")
 
 
 # this method is deprecated because it's slow and my suspicion that
 # the matrix expressions create unnecessary temp matrices which
 # are costly for huge matrices
 def transform_coordinates_old(A, M):
-    ''' 4x4 matrix M operates on orthogonal coordinates arrays
+    """4x4 matrix M operates on orthogonal coordinates arrays
     A1, A2, A3 to give B1, B2, B3
-    '''
+    """
     A1 = A.x
     A2 = A.y
     A3 = A.z
@@ -34,10 +34,11 @@ def transform_coordinates_old(A, M):
     B3 = A1 * M[2, 0] + A2 * M[2, 1] + A3 * M[2, 2] + M[2, 3]
     return CoordsVector(B1, B2, B3)
 
+
 def transform_coordinates_old2(A, M):
-    ''' 4x4 matrix M operates on orthogonal coordinates arrays
+    """4x4 matrix M operates on orthogonal coordinates arrays
     A1, A2, A3 to give B1, B2, B3
-    '''
+    """
     A1 = A.x
     A2 = A.y
     A3 = A.z
@@ -48,25 +49,33 @@ def transform_coordinates_old2(A, M):
     try:
         from .transform_coordinates_ext import _transform_coordinates
     except ImportError:
-        raise ImportError('The transform_coordinates C extension module is missing.' \
-                           ' Fallback code not yet implemented.')
+        raise ImportError(
+            "The transform_coordinates C extension module is missing."
+            " Fallback code not yet implemented."
+        )
 
     B1, B2, B3 = _transform_coordinates(A1, A2, A3, M)
     return CoordsVector(B1, B2, B3)
 
+
 from nibabel.affines import apply_affine
 
+
 def transform_coordinates(A, M):
-    vecs = np.asanyarray([A.x,A.y,A.z]).T
+    vecs = np.asanyarray([A.x, A.y, A.z]).T
     vecs_trans = apply_affine(M, vecs)
-    return CoordsVector(vecs_trans[...,0].T, vecs_trans[...,1].T, vecs_trans[...,2].T)
+    return CoordsVector(
+        vecs_trans[..., 0].T, vecs_trans[..., 1].T, vecs_trans[..., 2].T
+    )
+
 
 def get_vol_affine(infile):
     try:
         import nibabel as nib
     except ImportError:
-        raise ImportError('gradunwarp needs nibabel for I/O of mgz/nifti files.'
-                          ' Please install')
+        raise ImportError(
+            "gradunwarp needs nibabel for I/O of mgz/nifti files." " Please install"
+        )
     nibimage = nib.load(infile)
     return nibimage.get_fdata(), nibimage.affine
 
@@ -82,7 +91,8 @@ class Memoize:
             self.memo[args] = self.f(*args)
         return self.memo[args]
 
-#factorial = Memoize(math.factorial)
+
+# factorial = Memoize(math.factorial)
 factorial = math.factorial
 
 
@@ -174,28 +184,27 @@ def meshgrid(*xi, **kwargs):
     >>> xx, yy = meshgrid(x, y, sparse=True)
     >>> z = np.sin(xx**2+yy**2)/(xx**2+yy**2)
     """
-    copy = kwargs.get('copy', True)
+    copy = kwargs.get("copy", True)
     args = np.atleast_1d(*xi)
     if not isinstance(args, list):
         if args.size > 0:
             return args.copy() if copy else args
         else:
-            raise TypeError('meshgrid() take 1 or more arguments (0 given)')
+            raise TypeError("meshgrid() take 1 or more arguments (0 given)")
 
-    sparse = kwargs.get('sparse', False)
-    indexing = kwargs.get('indexing', 'xy')  # 'ij'
+    sparse = kwargs.get("sparse", False)
+    indexing = kwargs.get("indexing", "xy")  # 'ij'
 
     ndim = len(args)
     s0 = (1,) * ndim
-    output = [x.reshape(s0[:i] + (-1, ) + s0[i + 1::]) \
-              for i, x in enumerate(args)]
+    output = [x.reshape(s0[:i] + (-1,) + s0[i + 1 : :]) for i, x in enumerate(args)]
 
     shape = [x.size for x in output]
 
-    if indexing == 'xy':
+    if indexing == "xy":
         # switch first and second axis
-        output[0].shape = (1, -1) + (1, ) * (ndim - 2)
-        output[1].shape = (-1, 1) + (1, ) * (ndim - 2)
+        output[0].shape = (1, -1) + (1,) * (ndim - 2)
+        output[1].shape = (-1, 1) + (1,) * (ndim - 2)
         shape[0], shape[1] = shape[1], shape[0]
 
     if sparse:
@@ -217,7 +226,7 @@ def ndgrid(*args, **kwargs):
     Same as calling meshgrid with indexing='ij' (see meshgrid for
     documentation).
     """
-    kwargs['indexing'] = 'ij'
+    kwargs["indexing"] = "ij"
     return meshgrid(*args, **kwargs)
 
 
@@ -237,8 +246,7 @@ def legendre_old(nu, mu, x):
     (Abramowitz & Stegun, Section 8.5.)
     """
     if mu < 0 or mu > nu:
-        raise ValueError('require 0 <= mu <= nu, but mu=%d and nu=%d' \
-                         % (nu, mu))
+        raise ValueError("require 0 <= mu <= nu, but mu=%d and nu=%d" % (nu, mu))
     # if abs(x) > 1:
     #    raise ValueError('require -1 <= x <= 1, but x=%f', x)
 
@@ -249,8 +257,8 @@ def legendre_old(nu, mu, x):
         s = 1
         if mu & 1:
             s = -1
-        z = sqrt(1 - x ** 2)
-        p_nu = s * odd_factorial(2 * mu - 1) * z ** mu
+        z = sqrt(1 - x**2)
+        p_nu = s * odd_factorial(2 * mu - 1) * z**mu
 
     if mu == nu:
         return p_nu
@@ -275,8 +283,10 @@ def legendre(nu, mu, x):
     try:
         from .legendre_ext import _legendre
     except ImportError:
-        raise ImportError('The legendre C extension module is missing.' \
-                           ' Fallback legendre code not yet implemented.')
+        raise ImportError(
+            "The legendre C extension module is missing."
+            " Fallback legendre code not yet implemented."
+        )
     nu = int(nu)
     mu = int(mu)
     x = x.astype(np.float32)
@@ -285,14 +295,16 @@ def legendre(nu, mu, x):
 
 
 def interp3(vol, R, C, S):
-    '''
+    """
     TODO
-    '''
+    """
     try:
         from .interp3_ext import _interp3
     except ImportError:
-        raise ImportError('The interp3 C extension module is missing.' \
-                           ' Fallback interp3 code not yet implemented.')
+        raise ImportError(
+            "The interp3 C extension module is missing."
+            " Fallback interp3 code not yet implemented."
+        )
     vol = vol.astype(np.float32)
     vol = np.ascontiguousarray(vol)
     R = R.astype(np.float32)
@@ -305,29 +317,31 @@ def interp3(vol, R, C, S):
     return V
 
 
-if __name__ == '__main__':
-    print('Testing meshgrid...')
-    #import doctest
-    #doctest.testmod()
+if __name__ == "__main__":
+    print("Testing meshgrid...")
+    # import doctest
+    # doctest.testmod()
 
-    print('Profiling interp3...')
-    print('Interpolation for a million coordinates should be' \
-          ' in the order of seconds. Anything significantly less ' \
-          'is considered slow')
+    print("Profiling interp3...")
+    print(
+        "Interpolation for a million coordinates should be"
+        " in the order of seconds. Anything significantly less "
+        "is considered slow"
+    )
     import time
+
     arr = np.linspace(-4, 4, 6000)
     arr = np.sin(arr)
-    arr = arr.reshape(10, 20, 30).astype('float32')
+    arr = arr.reshape(10, 20, 30).astype("float32")
     gridn = 1
     for c in range(8):
-        R1 = np.linspace(4., 5., gridn).astype('float32')
-        C1 = np.linspace(11., 12., gridn).astype('float32')
-        S1 = np.linspace(15., 16., gridn).astype('float32')
+        R1 = np.linspace(4.0, 5.0, gridn).astype("float32")
+        C1 = np.linspace(11.0, 12.0, gridn).astype("float32")
+        S1 = np.linspace(15.0, 16.0, gridn).astype("float32")
         tic = time.time()
         v1 = interp3(arr, R1, C1, S1)
         if gridn == 10 or gridn == 1:
             print(v1)
         toc = time.time()
-        print("1 followed by %d zeros" % c, "|", gridn, "|", \
-               toc - tic, "seconds")
+        print("1 followed by %d zeros" % c, "|", gridn, "|", toc - tic, "seconds")
         gridn = gridn * 10

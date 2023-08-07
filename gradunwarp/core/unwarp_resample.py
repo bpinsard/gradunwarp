@@ -21,22 +21,21 @@ import nibabel as nib
 import subprocess
 import scipy.special
 
-#np.seterr(all='raise')
+# np.seterr(all='raise')
 
-log = logging.getLogger('gradunwarp')
+log = logging.getLogger("gradunwarp")
 
 
 class Unwarper(object):
-    '''
-    '''
+    """ """
+
     def __init__(self, vol, m_rcs2ras, vendor, coeffs, fileName):
-        '''
-        '''
+        """ """
         self.vol = vol
         self.m_rcs2ras = m_rcs2ras
         self.vendor = vendor
         self.coeffs = coeffs
-        self.name=fileName
+        self.name = fileName
         self.warp = False
         self.nojac = False
         self.m_rcs2lai = None
@@ -50,10 +49,10 @@ class Unwarper(object):
         self.order = 1
 
     def eval_spharm_grid(self, vendor, coeffs):
-        '''
+        """
         We evaluate the spherical harmonics on a less sampled grid.
         This is a spacetime vs accuracy tradeoff.
-        '''
+        """
         # init the grid first
         if not self.fovmin:
             fovmin = globals.siemens_fovmin
@@ -69,8 +68,8 @@ class Unwarper(object):
             numpoints = self.numpoints
 
         # convert to mm
-        fovmin = fovmin * 1000.
-        fovmax = fovmax * 1000.
+        fovmin = fovmin * 1000.0
+        fovmax = fovmax * 1000.0
         # the grid in meters. this is needed for spherical harmonics
         vec = np.linspace(fovmin, fovmax, numpoints)
         gvx, gvy, gvz = utils.meshgrid(vec, vec, vec)
@@ -78,44 +77,51 @@ class Unwarper(object):
         cf = (fovmax - fovmin) / numpoints
 
         # deduce the transformation from rcs to grid
-        g_rcs2xyz = np.array( [[0, cf, 0, fovmin],
-                               [cf, 0, 0, fovmin],
-                               [0, 0, cf, fovmin],
-                               [0, 0, 0, 1]], dtype=np.float32 )
+        g_rcs2xyz = np.array(
+            [[0, cf, 0, fovmin], [cf, 0, 0, fovmin], [0, 0, cf, fovmin], [0, 0, 0, 1]],
+            dtype=np.float32,
+        )
 
         # get the grid to rcs transformation also
         g_xyz2rcs = np.linalg.inv(g_rcs2xyz)
 
         # indices into the gradient displacement vol
-        gr, gc, gs = utils.meshgrid(np.arange(numpoints), np.arange(numpoints),
-                                 np.arange(numpoints), dtype=np.float32)
+        gr, gc, gs = utils.meshgrid(
+            np.arange(numpoints),
+            np.arange(numpoints),
+            np.arange(numpoints),
+            dtype=np.float32,
+        )
 
-        log.info('Evaluating spherical harmonics')
-        log.info('on a ' + str(numpoints) + '^3 grid')
-        log.info('with extents ' + str(fovmin) + 'mm to ' + str(fovmax) + 'mm')
+        log.info("Evaluating spherical harmonics")
+        log.info("on a " + str(numpoints) + "^3 grid")
+        log.info("with extents " + str(fovmin) + "mm to " + str(fovmax) + "mm")
         gvxyz = CV(gvx, gvy, gvz)
         _dv, _dxyz = eval_spherical_harmonics(coeffs, vendor, gvxyz)
 
         return CV(_dv.x, _dv.y, _dv.z), g_xyz2rcs
 
-
     def run(self):
-        '''
-        '''
-        #pdb.set_trace()
+        """ """
+        # pdb.set_trace()
         # define polarity based on the warp requested
-        self.polarity = 1.
+        self.polarity = 1.0
         if self.warp:
-            self.polarity = -1.
+            self.polarity = -1.0
 
         # Evaluate spherical harmonics on a smaller grid
         dv, g_xyz2rcs = self.eval_spharm_grid(self.vendor, self.coeffs)
 
         # transform RAS-coordinates into LAI-coordinates
-        m_ras2lai = np.array([[-1.0, 0.0, 0.0, 0.0],
-                             [0.0, 1.0, 0.0, 0.0],
-                             [0.0, 0.0, -1.0, 0.0],
-                             [0.0, 0.0, 0.0, 1.0]], dtype=np.float64)
+        m_ras2lai = np.array(
+            [
+                [-1.0, 0.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            dtype=np.float64,
+        )
         m_rcs2lai = np.dot(m_ras2lai, self.m_rcs2ras)
         m_rcs2lai_nohalf = m_rcs2lai[:, :]
 
@@ -123,7 +129,7 @@ class Unwarper(object):
         halfvox = np.zeros((4, 4))
         halfvox[0, 3] = m_rcs2lai[0, 0] / 2.0
         halfvox[1, 3] = m_rcs2lai[1, 1] / 2.0
-        #m_rcs2lai = m_rcs2lai + halfvox
+        # m_rcs2lai = m_rcs2lai + halfvox
 
         # extract rotational and scaling parts of the transformation matrix
         # ignore the translation part
@@ -138,17 +144,20 @@ class Unwarper(object):
         # The differentials can be determined by mapping a vector of 1s
         # through rotation and scaling, where any mirror
         # will impose a negation
-        ones = CV(1., 1., 1.)
+        ones = CV(1.0, 1.0, 1.0)
         dxyz = utils.transform_coordinates(ones, r_rcs2lai)
 
         # do the nonlinear unwarp
-        if self.vendor == 'siemens':
-            self.out, self.vjacout = self.non_linear_unwarp_siemens(self.vol.shape, dv, dxyz,
-                                                                 m_rcs2lai, m_rcs2lai_nohalf, g_xyz2rcs)
+        if self.vendor == "siemens":
+            self.out, self.vjacout = self.non_linear_unwarp_siemens(
+                self.vol.shape, dv, dxyz, m_rcs2lai, m_rcs2lai_nohalf, g_xyz2rcs
+            )
         del dv, g_xyz2rcs, self.vjacout
 
-    def non_linear_unwarp_siemens(self, volshape, dv, dxyz, m_rcs2lai, m_rcs2lai_nohalf, g_xyz2rcs):
-        ''' Performs the crux of the unwarping.
+    def non_linear_unwarp_siemens(
+        self, volshape, dv, dxyz, m_rcs2lai, m_rcs2lai_nohalf, g_xyz2rcs
+    ):
+        """Performs the crux of the unwarping.
         It's agnostic to Siemens or GE and uses more functions to
         do the processing separately.
 
@@ -168,8 +177,8 @@ class Unwarper(object):
             x,y and z coordinates of the unwarped coordinates
         vjacmult_lps : np.array
             the jacobian multiplier (determinant)
-        '''
-        log.info('Evaluating the jacobian multiplier')
+        """
+        log.info("Evaluating the jacobian multiplier")
         nr, nc, ns = self.vol.shape[:3]
         if not self.nojac:
             jim2 = np.zeros((nr, nc), dtype=np.float32)
@@ -194,159 +203,197 @@ class Unwarper(object):
 
         # Compute transform to map the internal voxel coordinates to FSL scaled mm coordinates
         try:
-            pixdim1=float((subprocess.Popen(['fslval', self.name,'pixdim1'], stdout=subprocess.PIPE).communicate()[0]).strip())
+            pixdim1 = float(
+                (
+                    subprocess.Popen(
+                        ["fslval", self.name, "pixdim1"], stdout=subprocess.PIPE
+                    ).communicate()[0]
+                ).strip()
+            )
         except ValueError:
-            log.error('Failure during fslval call. Make sure fslval, fslhd, fslorient are in your PATH, and that FSLOUTPUTTYPE is set.')
+            log.error(
+                "Failure during fslval call. Make sure fslval, fslhd, fslorient are in your PATH, and that FSLOUTPUTTYPE is set."
+            )
             sys.exit(1)
 
-        pixdim2=float((subprocess.Popen(['fslval', self.name,'pixdim2'], stdout=subprocess.PIPE).communicate()[0]).strip())
-        pixdim3=float((subprocess.Popen(['fslval', self.name,'pixdim3'], stdout=subprocess.PIPE).communicate()[0]).strip())
-        dim1=float((subprocess.Popen(['fslval', self.name,'dim1'], stdout=subprocess.PIPE).communicate()[0]).strip())
-        outputOrient=subprocess.Popen(['fslorient', self.name], stdout=subprocess.PIPE).communicate()[0].strip()
-        if outputOrient == b'NEUROLOGICAL':
-            log.info('Input volume is NEUROLOGICAL orientation. Flipping x-axis in output fullWarp_abs.nii.gz')
+        pixdim2 = float(
+            (
+                subprocess.Popen(
+                    ["fslval", self.name, "pixdim2"], stdout=subprocess.PIPE
+                ).communicate()[0]
+            ).strip()
+        )
+        pixdim3 = float(
+            (
+                subprocess.Popen(
+                    ["fslval", self.name, "pixdim3"], stdout=subprocess.PIPE
+                ).communicate()[0]
+            ).strip()
+        )
+        dim1 = float(
+            (
+                subprocess.Popen(
+                    ["fslval", self.name, "dim1"], stdout=subprocess.PIPE
+                ).communicate()[0]
+            ).strip()
+        )
+        outputOrient = (
+            subprocess.Popen(["fslorient", self.name], stdout=subprocess.PIPE)
+            .communicate()[0]
+            .strip()
+        )
+        if outputOrient == b"NEUROLOGICAL":
+            log.info(
+                "Input volume is NEUROLOGICAL orientation. Flipping x-axis in output fullWarp_abs.nii.gz"
+            )
             # if neurological then flip x coordinate (both here in premat and later in postmat)
-            m_vox2fsl = np.array([[-1.0*pixdim1, 0.0, 0.0, pixdim1*(dim1-1)],
-                              [0.0, pixdim2, 0.0, 0.0],
-                              [0.0, 0.0, pixdim3, 0.0],
-                              [0.0, 0.0, 0.0, 1.0]], dtype=np.float64)
+            m_vox2fsl = np.array(
+                [
+                    [-1.0 * pixdim1, 0.0, 0.0, pixdim1 * (dim1 - 1)],
+                    [0.0, pixdim2, 0.0, 0.0],
+                    [0.0, 0.0, pixdim3, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+                dtype=np.float64,
+            )
         else:
-            m_vox2fsl = np.array([[pixdim1, 0.0, 0.0, 0.0],
-                              [0.0, pixdim2, 0.0, 0.0],
-                              [0.0, 0.0, pixdim3, 0.0],
-                              [0.0, 0.0, 0.0, 1.0]], dtype=np.float64)
+            m_vox2fsl = np.array(
+                [
+                    [pixdim1, 0.0, 0.0, 0.0],
+                    [0.0, pixdim2, 0.0, 0.0],
+                    [0.0, 0.0, pixdim3, 0.0],
+                    [0.0, 0.0, 0.0, 1.0],
+                ],
+                dtype=np.float64,
+            )
 
-        log.info('Unwarping slice by slice')
+        log.info("Unwarping slice by slice")
         # for every slice
         for s in range(ns):
             # pretty print
             sys.stdout.flush()
-            if (s+1) % 10 == 0:
-                print(s+1, end=' ')
+            if (s + 1) % 10 == 0:
+                print(s + 1, end=" ")
             else:
-                print('.', end=' ')
+                print(".", end=" ")
 
             # hopefully, free memory
             gc.collect()
             # init to 0
-            dvx.fill(0.)
-            dvy.fill(0.)
-            dvz.fill(0.)
-            im_.fill(0.)
+            dvx.fill(0.0)
+            dvy.fill(0.0)
+            dvz.fill(0.0)
+            im_.fill(0.0)
 
             vs = np.ones(vr.shape) * s
             vrcs = CV(vr, vc, vs)
             vxyz = utils.transform_coordinates(vrcs, m_rcs2lai_nohalf)
             vrcsg = utils.transform_coordinates(vxyz, g_xyz2rcs)
-            ndimage.interpolation.map_coordinates(dv.x,
-                                                  vrcsg,
-                                                  output=dvx,
-                                                  order=self.order)
-            ndimage.interpolation.map_coordinates(dv.y,
-                                                  vrcsg,
-                                                  output=dvy,
-                                                  order=self.order)
-            ndimage.interpolation.map_coordinates(dv.z,
-                                                  vrcsg,
-                                                  output=dvz,
-                                                  order=self.order)
+            ndimage.interpolation.map_coordinates(
+                dv.x, vrcsg, output=dvx, order=self.order
+            )
+            ndimage.interpolation.map_coordinates(
+                dv.y, vrcsg, output=dvy, order=self.order
+            )
+            ndimage.interpolation.map_coordinates(
+                dv.z, vrcsg, output=dvz, order=self.order
+            )
             # new locations of the image voxels in XYZ ( LAI ) coords
 
-            #dvx.fill(0.)
-            #dvy.fill(0.)
-            #dvz.fill(0.)
+            # dvx.fill(0.)
+            # dvy.fill(0.)
+            # dvz.fill(0.)
 
-            vxyzw = CV(x=vxyz.x + self.polarity * dvx,
-                       y=vxyz.y + self.polarity * dvy,
-                       z=vxyz.z + self.polarity * dvz)
+            vxyzw = CV(
+                x=vxyz.x + self.polarity * dvx,
+                y=vxyz.y + self.polarity * dvy,
+                z=vxyz.z + self.polarity * dvz,
+            )
 
             # convert the locations got into RCS indices
-            vrcsw = utils.transform_coordinates(vxyzw,
-                                                np.linalg.inv(m_rcs2lai))
+            vrcsw = utils.transform_coordinates(vxyzw, np.linalg.inv(m_rcs2lai))
             # map the internal voxel coordinates to FSL scaled mm coordinates
             vfsl = utils.transform_coordinates(vrcsw, m_vox2fsl)
 
-
-            #im_ = utils.interp3(self.vol, vrcsw.x, vrcsw.y, vrcsw.z)
-            ndimage.interpolation.map_coordinates(self.vol,
-                                                  vrcsw,
-                                                  output=im_,
-                                                  order=self.order)
+            # im_ = utils.interp3(self.vol, vrcsw.x, vrcsw.y, vrcsw.z)
+            ndimage.interpolation.map_coordinates(
+                self.vol, vrcsw, output=im_, order=self.order
+            )
             # find NaN voxels, and set them to 0
-            im_[np.where(np.isnan(im_))] = 0.
-            im_[np.where(np.isinf(im_))] = 0.
+            im_[np.where(np.isnan(im_))] = 0.0
+            im_[np.where(np.isinf(im_))] = 0.0
             im2[vr, vc] = im_
 
-            #img = nib.Nifti1Image(dvx,np.eye(4))
-            #nib.save(img,"x"+str(s).zfill(3)+".nii.gz")
-            #img = nib.Nifti1Image(dvy,np.eye(4))
-            #nib.save(img,"y"+str(s).zfill(3)+".nii.gz")
-            #img = nib.Nifti1Image(dvz,np.eye(4))
-            #nib.save(img,"z"+str(s).zfill(3)+".nii.gz")
+            # img = nib.Nifti1Image(dvx,np.eye(4))
+            # nib.save(img,"x"+str(s).zfill(3)+".nii.gz")
+            # img = nib.Nifti1Image(dvy,np.eye(4))
+            # nib.save(img,"y"+str(s).zfill(3)+".nii.gz")
+            # img = nib.Nifti1Image(dvz,np.eye(4))
+            # nib.save(img,"z"+str(s).zfill(3)+".nii.gz")
 
             # Multiply the intensity with the Jacobian det, if needed
             if not self.nojac:
-                vjacdet_lpsw.fill(0.)
-                jim2.fill(0.)
+                vjacdet_lpsw.fill(0.0)
+                jim2.fill(0.0)
                 # if polarity is negative, the jacobian is also inversed
                 if self.polarity == -1:
-                    vjacdet_lps = 1. / vjacdet_lps
+                    vjacdet_lps = 1.0 / vjacdet_lps
 
-                ndimage.interpolation.map_coordinates(vjacdet_lps,
-                                                      vrcsg,
-                                                      output=vjacdet_lpsw,
-                                                      order=self.order)
-                vjacdet_lpsw[np.where(np.isnan(vjacdet_lpsw))] = 0.
-                vjacdet_lpsw[np.where(np.isinf(vjacdet_lpsw))] = 0.
+                ndimage.interpolation.map_coordinates(
+                    vjacdet_lps, vrcsg, output=vjacdet_lpsw, order=self.order
+                )
+                vjacdet_lpsw[np.where(np.isnan(vjacdet_lpsw))] = 0.0
+                vjacdet_lpsw[np.where(np.isinf(vjacdet_lpsw))] = 0.0
                 jim2[vr, vc] = vjacdet_lpsw
                 im2 = im2 * jim2
                 vjacout[..., s] = jim2
 
-            fullWarp[...,s,0]=vfsl.x
-            fullWarp[...,s,1]=vfsl.y
-            fullWarp[...,s,2]=vfsl.z
+            fullWarp[..., s, 0] = vfsl.x
+            fullWarp[..., s, 1] = vfsl.y
+            fullWarp[..., s, 2] = vfsl.z
             out[..., s] = im2
 
         print()
 
-        img=nib.Nifti1Image(fullWarp, self.m_rcs2ras)
-        nib.save(img,"fullWarp_abs.nii.gz")
+        img = nib.Nifti1Image(fullWarp, self.m_rcs2ras)
+        nib.save(img, "fullWarp_abs.nii.gz")
         # return image and the jacobian
         del vrcsw, vfsl, vxyzw, vrcs, vxyz, vrcsg, fullWarp
         return out, vjacout
 
     def write(self, outfile):
-        log.info('Writing output to ' + outfile)
+        log.info("Writing output to " + outfile)
         # if out datatype is float64 make it float32
         if self.out.dtype == np.float64:
             self.out = self.out.astype(np.float32)
-        if outfile.endswith('.nii') or outfile.endswith('.nii.gz'):
+        if outfile.endswith(".nii") or outfile.endswith(".nii.gz"):
             img = nib.Nifti1Image(self.out, self.m_rcs2ras)
-        if outfile.endswith('.mgh') or outfile.endswith('.mgz'):
-            #self.out = self.out.astype(self.vol.dtype)
+        if outfile.endswith(".mgh") or outfile.endswith(".mgz"):
+            # self.out = self.out.astype(self.vol.dtype)
             img = nib.MGHImage(self.out, self.m_rcs2ras)
         nib.save(img, outfile)
 
 
 def eval_siemens_jacobian_mult(F, dxyz):
-    '''
-    '''
+    """ """
     d0, d1, d2 = dxyz.x, dxyz.y, dxyz.z
-    #print F.x.shape, d0, d1, d2
+    # print F.x.shape, d0, d1, d2
 
     if d0 == 0 or d1 == 0 or d2 == 0:
-        raise ValueError('weirdness found in Jacobian calculation')
+        raise ValueError("weirdness found in Jacobian calculation")
 
     dFxdx, dFxdy, dFxdz = np.gradient(F.x, d0, d1, d2)
     dFydx, dFydy, dFydz = np.gradient(F.y, d0, d1, d2)
     dFzdx, dFzdy, dFzdz = np.gradient(F.z, d0, d1, d2)
 
-    jacdet = (1. + dFxdx) * (1. + dFydy) * (1. + dFzdz) \
-           - (1. + dFxdx) * dFydz * dFzdy \
-           - dFxdy * dFydx * (1. + dFzdz) \
-           + dFxdy * dFydz * dFzdx \
-           + dFxdz * dFydx * dFzdy \
-           - dFxdz * (1. + dFydy) * dFzdx
+    jacdet = (
+        (1.0 + dFxdx) * (1.0 + dFydy) * (1.0 + dFzdz)
+        - (1.0 + dFxdx) * dFydz * dFzdy
+        - dFxdy * dFydx * (1.0 + dFzdz)
+        + dFxdy * dFydz * dFzdx
+        + dFxdz * dFydx * dFzdy
+        - dFxdz * (1.0 + dFydy) * dFzdx
+    )
     jacdet = np.abs(jacdet)
     jacdet[np.where(jacdet > siemens_max_det)] = siemens_max_det
 
@@ -354,7 +401,7 @@ def eval_siemens_jacobian_mult(F, dxyz):
 
 
 def eval_spherical_harmonics(coeffs, vendor, vxyz):
-    ''' Evaluate spherical harmonics
+    """Evaluate spherical harmonics
 
     Parameters
     ----------
@@ -366,39 +413,38 @@ def eval_spherical_harmonics(coeffs, vendor, vxyz):
         in the function
     resolution : float
         (optional) useful in case vxyz is scalar
-    '''
+    """
     # convert radius into mm
-    R0 = coeffs.R0_m  * 1000
+    R0 = coeffs.R0_m * 1000
 
     x, y, z = vxyz
 
-    #pdb.set_trace()
+    # pdb.set_trace()
     # log.info('calculating displacements (mm) '
     #        'using spherical harmonics coeffcients...')
-    if vendor == 'siemens':
-        log.info('along x...')
+    if vendor == "siemens":
+        log.info("along x...")
         bx = siemens_B(coeffs.alpha_x, coeffs.beta_x, x, y, z, R0)
-        log.info('along y...')
+        log.info("along y...")
         by = siemens_B(coeffs.alpha_y, coeffs.beta_y, x, y, z, R0)
-        log.info('along z...')
+        log.info("along z...")
         bz = siemens_B(coeffs.alpha_z, coeffs.beta_z, x, y, z, R0)
     else:
         # GE
-        log.info('along x...')
+        log.info("along x...")
         bx = ge_D(coeffs.alpha_x, coeffs.beta_x, x, y, z)
-        log.info('along y...')
+        log.info("along y...")
         by = ge_D(coeffs.alpha_y, coeffs.beta_y, x, y, z)
-        log.info('along z...')
+        log.info("along z...")
         bz = siemens_B(coeffs.alpha_z, coeffs.beta_z, x, y, z, R0)
         bz = ge_D(coeffs.alpha_z, coeffs.beta_z, x, y, z)
 
     return CV(bx * R0, by * R0, bz * R0), CV(x, y, z)
 
 
-#@profile
+# @profile
 def siemens_B(alpha, beta, x1, y1, z1, R0):
-    ''' Calculate displacement field from Siemens coefficients
-    '''
+    """Calculate displacement field from Siemens coefficients"""
     nmax = alpha.shape[0] - 1
     x1 = x1 + 0.0001  # hack to avoid singularities at R=0
 
@@ -412,22 +458,22 @@ def siemens_B(alpha, beta, x1, y1, z1, R0):
         f = np.power(r / R0, n)
         for m in range(0, n + 1):
             f2 = alpha[n, m] * np.cos(m * phi) + beta[n, m] * np.sin(m * phi)
-            #_ptemp = utils.legendre(n, m, np.cos(theta))
+            # _ptemp = utils.legendre(n, m, np.cos(theta))
             _p = scipy.special.lpmv(m, n, np.cos(theta))
             normfact = 1
             # this is Siemens normalization
             if m > 0:
-                normfact = math.pow(-1, m) * \
-                math.sqrt(float((2 * n + 1) * factorial(n - m)) \
-                          / float(2 * factorial(n + m)))
+                normfact = math.pow(-1, m) * math.sqrt(
+                    float((2 * n + 1) * factorial(n - m)) / float(2 * factorial(n + m))
+                )
             _p *= normfact
             b += f * _p * f2
     return b
 
 
 def ge_D(alpha, beta, x1, y1, z1):
-    ''' GE Gradwarp coeffs define the error rather than the total
-    gradient field'''
+    """GE Gradwarp coeffs define the error rather than the total
+    gradient field"""
 
     nmax = alpha.shape[0] - 1
     x1 = x1 + 0.0001  # hack to avoid singularities
@@ -443,8 +489,7 @@ def ge_D(alpha, beta, x1, y1, z1):
         # So GE uses the usual unnormalized legendre polys.
         f = np.power(r, n)
         for m in range(0, n + 1):
-            f2 = alpha[n, m] * np.cos(m * theta) + beta[n, m] \
-            * np.sin(m * theta)
+            f2 = alpha[n, m] * np.cos(m * theta) + beta[n, m] * np.sin(m * theta)
             _p = scipy.special.lpmv(m, n, np.cos(phi))
             d += f * _p * f2
     d = d / 100.0  # cm back to meters
