@@ -13,49 +13,87 @@ for use within the [HCP Minimal Preprocessing Pipelines][HCP Pipelines].
 
 ## Installation
 
-### Prerequisites
+### Install for all users
+You can install the necessary prerequisites in most Ubuntu or Debian-based distributions with this command:
+```bash
+sudo apt install python3-numpy python3-pip
+```
 
-gradunwarp needs
+For convenience the latest gradunwarp tarball can be downloaded from [here][gradunwarp-hcp-tarball].
+
+First, extract the gradunwarp tarball, and `cd` into the folder it creates. Then do:
+```bash
+sudo pip3 install -r requirements.txt
+sudo pip3 install .
+```
+
+#### Install with only user permissions
+If you don't have superuser permissions on the machine, you can use the `--user` switch of pip install instead of using `sudo`:
+```bash
+pip3 install -r requirements.txt --user
+pip3 install . --user
+```
+If you use the `--user` switch, you will need to add `/home/<username>/.local/bin` to your `PATH` environment variable, replacing `<username>` with your user name.
+
+### Install using a virtual environment
+You may optionally choose to install gradunwarp into a python virtual environment in order to avoid possible interference with your existing python setup.
+If the [python virtual environment module](https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments) is not already installed, then you may need to run
+```bash
+sudo apt install python3-venv
+```
+before running the below.
+
+First, extract the gradunwarp tarball, and `cd` into the folder it creates. 
+Then do:
+```bash
+python3 -m venv gradunwarp.build
+source gradunwarp.build/bin/activate
+pip install -r requirements.txt
+pip install . 
+deactivate
+```
+The command `deactivate` ensures that your python environment is set to the way it was before.
+
+After this installation, you can then use gradunwarp by adding
+```
+source "$PATH_TO_INSTALLATION"/gradunwarp.build/bin/activate
+```
+to your scripts, where `"$PATH_TO_INSTALLATION"` should be replaced with the path where you installed gradunwarp.
+Note that you may need to `deactivate` the virtual environment after running gradunwarp in your scripts to use other environments.
+
+#### Install using a virtual environment for python2
+Installation using python2 is slightly different to that for python3 above.
+
+As above extract the gradunwarp tarball, and `cd` into the folder it creates. 
+Then do:
+```bash
+virtualenv -p python2 gradunwarp.build
+source gradunwarp.build/bin/activate
+pip install -r requirements.txt
+pip install . 
+deactivate
+```
+Note that `virtualenv` is used instead of `venv`.
+
+This virtual environment can then be used in the same way as described for python3 above.
+
+### Dependencies
 
 * Python (>=2.7 or 3.x)
-* [Numpy][Numpy] (preferably, the latest)
-* [Scipy][Scipy] (preferably, the latest)
-* Numpy devel package (to compile external modules written in C)
-* [nibabel][nibabel] (latest trunk, which has the MGH support)
+* [Numpy][Numpy]
+* [Scipy][Scipy]
+* Numpy devel package, if separate (to compile external modules written in C)
+* [nibabel][nibabel] (2.0 or later for python2.7, 3.2.1 or later for python3.x)
 
-requirements for nibabel.
+Dependencies of nibabel:
 
-* [PyDICOM][PyDICOM] 0.9.5 or greater (for DICOM support)
-* [nose][nose] 0.11 or greater (to run the tests)
+* [PyDICOM][PyDICOM] 0.9.5 or later (for DICOM support)
+* [nose][nose] 0.11 or later (to run the tests)
 * [sphinx][sphinx] (to build the documentation)
-
-The installation of these in Ubuntu is as simple as
-
-    sudo apt-get install python-numpy
-    sudo apt-get install python-scipy
-
-### Install
-
-For convenience both the gradunwarp tarball can be downloaded
-[here][gradunwarp-hcp-tarball] and the nibabel tarball can be downloaded
-from [here][nibabel-tarball].
-
-They are extracted and the following step is the same for gradunwarp and
-nibabel installation. First, change to the respective directory. Then,
-
-    sudo python setup.py install
-
-Note: It is possible that you don't have superuser permissions. In that
-case, you can use the `--prefix` switch of setup.py install.
-
-    python setup.py install --prefix=/home/foo/
-
-In that case, make sure your `PATH` has `/home/foo/bin` and make sure the
-`PYTHONPATH` has `/home/foo/lib/python2.7/site-packages/`
 
 ## Usage
 
-Note that a core component of `gradient_unwarp.py` (`unwarp_resample.py`) uses a `subprocess` call to the FSL tools `fslval` and `fslorient`. So, `FSLDIR` and `FSLOUTPUTTYPE` must be defined appropriately in your environment, and `${FSLDIR}/bin` must be in your `PATH` and contain `fslval`, `fslorient`, and `fslhd`.
+Note that a core component of `gradient_unwarp.py` (`unwarp_resample.py`) uses a `subprocess` call to the FSL tools `fslval` and `fslorient`. So FSL must be [installed][installed] and its configuration file correctly [sourced][sourced] (i.e., `FSLDIR` and `FSLOUTPUTTYPE` must be defined appropriately in your environment, and `${FSLDIR}/bin` must be in your `PATH` and contain `fslval`, `fslorient`, and `fslhd` -- this should be done for you by the SetUpHCPPipeline.sh script). FSLOUTPUTTYPE must be set to NIFTI\_GZ, which is the default.
 
 skeleton
 
@@ -156,7 +194,6 @@ To do this, after cloning the [HCP Pipelines Repository][HCP Pipelines] use:
 [gradunwarp-ksubramz]: https://github.com/ksubramz/gradunwarp
 [HCP]: http://www.humanconnectome.org
 [gradunwarp-hcp-tarball]: https://github.com/Washington-University/gradunwarp/releases
-[nibabel-tarball]: https://github.com/downloads/ksubramz/gradunwarp/nibabel-1.2.0.dev.tar.gz
 [Numpy]: http://www.numpy.org
 [Scipy]: http://www.scipy.org
 [nibabel]: http://nipy.org/nibabel
@@ -165,3 +202,5 @@ To do this, after cloning the [HCP Pipelines Repository][HCP Pipelines] use:
 [sphinx]: http://sphinx-doc.org
 [Copying.md]: Copying.md
 [HCP Pipelines]: https://github.com/Washington-University/Pipelines
+[installed]: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation/Linux
+[sourced]: https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation/ShellSetup
