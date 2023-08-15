@@ -1,5 +1,4 @@
-from numpy.distutils.core import setup, Extension
-from numpy.distutils.misc_util import get_numpy_include_dirs
+from setuptools import setup
 import os, sys
 
 mods = [
