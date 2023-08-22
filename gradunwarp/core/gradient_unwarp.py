@@ -126,10 +126,10 @@ class GradientUnwarpRunner(object):
         else:
             self.coeffs = coeffs.get_coefficients(self.args.vendor, self.args.coeffile)
 
-        self.vol, self.m_rcs2ras = utils.get_vol_affine(self.args.infile)
-
+        self.input_nii = nib.load(self.args.infile)
+        
         self.unwarper = Unwarper(
-            self.vol, self.m_rcs2ras, self.args.vendor, self.coeffs, self.args.infile
+            self.input_nii, self.args.vendor, self.coeffs, self.args.infile
         )
         if hasattr(self.args, "fovmin") and self.args.fovmin:
             self.unwarper.fovmin = float(self.args.fovmin)

@@ -20,6 +20,7 @@ from .globals import siemens_max_det
 import nibabel as nib
 import subprocess
 import scipy.special
+import nibabel as nb
 
 # np.seterr(all='raise')
 
@@ -29,8 +30,10 @@ log = logging.getLogger("gradunwarp")
 class Unwarper(object):
     """ """
 
-    def __init__(self, vol, m_rcs2ras, vendor, coeffs, fileName):
+    def __init__(self, input_nii, vendor, coeffs, fileName):
         """ """
+        self.input_nii = input_nii
+        self.vol, self.m_rcs2ras = self.input_nii.get_fdata(), self.input_nii.affine
         self.vol = vol
         self.m_rcs2ras = m_rcs2ras
         self.vendor = vendor
@@ -202,46 +205,13 @@ class Unwarper(object):
         vc, vr = utils.meshgrid(np.arange(nc), np.arange(nr))
 
         # Compute transform to map the internal voxel coordinates to FSL scaled mm coordinates
-        try:
-            pixdim1 = float(
-                (
-                    subprocess.Popen(
-                        ["fslval", self.name, "pixdim1"], stdout=subprocess.PIPE
-                    ).communicate()[0]
-                ).strip()
-            )
-        except ValueError:
-            log.error(
-                "Failure during fslval call. Make sure fslval, fslhd, fslorient are in your PATH, and that FSLOUTPUTTYPE is set."
-            )
-            sys.exit(1)
+        pixdim1, pixdim2, pixdim3 = self.input_nii.header.get('pixdim')[1:4]
 
-        pixdim2 = float(
-            (
-                subprocess.Popen(
-                    ["fslval", self.name, "pixdim2"], stdout=subprocess.PIPE
-                ).communicate()[0]
-            ).strip()
-        )
-        pixdim3 = float(
-            (
-                subprocess.Popen(
-                    ["fslval", self.name, "pixdim3"], stdout=subprocess.PIPE
-                ).communicate()[0]
-            ).strip()
-        )
-        dim1 = float(
-            (
-                subprocess.Popen(
-                    ["fslval", self.name, "dim1"], stdout=subprocess.PIPE
-                ).communicate()[0]
-            ).strip()
-        )
-        outputOrient = (
-            subprocess.Popen(["fslorient", self.name], stdout=subprocess.PIPE)
-            .communicate()[0]
-            .strip()
-        )
+        dim1 = self.input_nii.header.get('dim')[1]
+        axcodes = ''.join(nb.orientations.aff2axcodes(nii.affine))
+
+        # TODO: figure out if that logic works
+        outputOrient = 'NEUROLOGICAL' if axcodes in ['RAS', 'RPI', 'LPS', 'LAI'] else 'RADIOLOGICAL'
         if outputOrient == b"NEUROLOGICAL":
             log.info(
                 "Input volume is NEUROLOGICAL orientation. Flipping x-axis in output fullWarp_abs.nii.gz"
