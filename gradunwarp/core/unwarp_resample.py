@@ -34,8 +34,6 @@ class Unwarper(object):
         """ """
         self.input_nii = input_nii
         self.vol, self.m_rcs2ras = self.input_nii.get_fdata(), self.input_nii.affine
-        self.vol = vol
-        self.m_rcs2ras = m_rcs2ras
         self.vendor = vendor
         self.coeffs = coeffs
         self.name = fileName
@@ -208,7 +206,7 @@ class Unwarper(object):
         pixdim1, pixdim2, pixdim3 = self.input_nii.header.get('pixdim')[1:4]
 
         dim1 = self.input_nii.header.get('dim')[1]
-        axcodes = ''.join(nb.orientations.aff2axcodes(nii.affine))
+        axcodes = ''.join(nb.orientations.aff2axcodes(self.input_nii.affine))
 
         # TODO: figure out if that logic works
         outputOrient = 'NEUROLOGICAL' if axcodes in ['RAS', 'RPI', 'LPS', 'LAI'] else 'RADIOLOGICAL'
@@ -325,8 +323,7 @@ class Unwarper(object):
 
         print()
 
-        img = nib.Nifti1Image(fullWarp, self.m_rcs2ras)
-        nib.save(img, "fullWarp_abs.nii.gz")
+        self.fullWarp = nib.Nifti1Image(fullWarp, self.m_rcs2ras)
         # return image and the jacobian
         del vrcsw, vfsl, vxyzw, vrcs, vxyz, vrcsg, fullWarp
         return out, vjacout
@@ -342,6 +339,9 @@ class Unwarper(object):
             # self.out = self.out.astype(self.vol.dtype)
             img = nib.MGHImage(self.out, self.m_rcs2ras)
         nib.save(img, outfile)
+
+        suffix = outfile.split('_')[-1]
+        nib.save(self.fullWarp, outfile.replace(suffix, f"desc-{suffix.replace('.nii.gz','')}_warp.nii.gz"))
 
 
 def eval_siemens_jacobian_mult(F, dxyz):

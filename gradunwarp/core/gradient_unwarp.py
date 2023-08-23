@@ -10,6 +10,7 @@ import os
 import logging
 from gradunwarp.core import globals, coeffs, utils
 from gradunwarp.core.unwarp_resample import Unwarper
+import nibabel as nb
 
 log = globals.get_logger()
 
@@ -126,8 +127,8 @@ class GradientUnwarpRunner(object):
         else:
             self.coeffs = coeffs.get_coefficients(self.args.vendor, self.args.coeffile)
 
-        self.input_nii = nib.load(self.args.infile)
-        
+        self.input_nii = nb.load(self.args.infile)
+
         self.unwarper = Unwarper(
             self.input_nii, self.args.vendor, self.coeffs, self.args.infile
         )
