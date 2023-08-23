@@ -206,7 +206,7 @@ def meshgrid(*xi, **kwargs):
     else:
         # Return the full N-D matrix (not only the 1-D vector)
         if copy:
-            mult_fact = np.ones(shape, dtype=int)
+            mult_fact = np.ones(shape, dtype=np.float32)
             return [x * mult_fact for x in output]
         else:
             return np.broadcast_arrays(*output)
