@@ -16,4 +16,5 @@ def test_siemens_B():
     bx = siemens_B(siemens_coeffs.alpha_x, siemens_coeffs.beta_x, x, y, z, R0)
     ref_bx = np.load('gradunwarp/core/tests/data/siemens_B_output.npz')['bx']
 
-    assert_array_almost_equal(ref_bx, bx)
+    # changes in legendre function is causing differences at 6th decimal
+    assert_array_almost_equal(ref_bx, bx, decimal=5)
