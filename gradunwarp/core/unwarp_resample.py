@@ -20,7 +20,6 @@ from .globals import siemens_max_det
 import nibabel as nib
 import subprocess
 import scipy.special
-import nibabel as nb
 
 # np.seterr(all='raise')
 
@@ -206,7 +205,7 @@ class Unwarper(object):
         pixdim1, pixdim2, pixdim3 = self.input_nii.header.get('pixdim')[1:4]
 
         dim1 = self.input_nii.header.get('dim')[1]
-        axcodes = ''.join(nb.orientations.aff2axcodes(self.input_nii.affine))
+        axcodes = ''.join(nib.orientations.aff2axcodes(self.input_nii.affine))
 
         # TODO: figure out if that logic works
         outputOrient = 'NEUROLOGICAL' if axcodes in ['RAS', 'RPI', 'LPS', 'LAI'] else 'RADIOLOGICAL'
