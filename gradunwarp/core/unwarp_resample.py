@@ -205,10 +205,9 @@ class Unwarper(object):
         pixdim1, pixdim2, pixdim3 = self.input_nii.header.get('pixdim')[1:4]
 
         dim1 = self.input_nii.header.get('dim')[1]
-        axcodes = ''.join(nib.orientations.aff2axcodes(self.input_nii.affine))
 
         # TODO: figure out if that logic works
-        outputOrient = 'NEUROLOGICAL' if axcodes in ['RAS', 'RPI', 'LPS', 'LAI'] else 'RADIOLOGICAL'
+        outputOrient = get_fslorient(self.input_nii)
         if outputOrient == b"NEUROLOGICAL":
             log.info(
                 "Input volume is NEUROLOGICAL orientation. Flipping x-axis in output fullWarp_abs.nii.gz"
@@ -463,3 +462,22 @@ def ge_D(alpha, beta, x1, y1, z1):
             d += f * _p * f2
     d = d / 100.0  # cm back to meters
     return d
+
+
+
+def get_fslorient(nii):
+    h = nii.header
+    sform = h.get_sform()
+    sform_det = np.linalg.det(sform[:3,:3]) if sform is not None else None
+
+    qform = h.get_qform()
+    qform_det = np.linalg.det(qform[:3,:3]) if qform is not None else None
+
+    det = sform_det or qform_det
+
+    if not sform_det and not qform_det:
+        return 'UNKNOWN'
+    elif sform_det and qform_det and (sform_det * qform_det) < 0 :
+        return 'INCONSISTENT'
+    else:
+        return 'RADIOLOGICAL' if det < 0 else 'NEUROLOGICAL'
