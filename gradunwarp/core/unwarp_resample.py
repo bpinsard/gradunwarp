@@ -207,8 +207,7 @@ class Unwarper(object):
         dim1 = self.input_nii.header.get('dim')[1]
 
         # TODO: figure out if that logic works
-        outputOrient = get_fslorient(self.input_nii)
-        if outputOrient == b"NEUROLOGICAL":
+        if np.linalg.det(self.input_nii.affine) > 0:
             log.info(
                 "Input volume is NEUROLOGICAL orientation. Flipping x-axis in output fullWarp_abs.nii.gz"
             )
