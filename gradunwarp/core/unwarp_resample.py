@@ -202,9 +202,8 @@ class Unwarper(object):
         vc, vr = utils.meshgrid(np.arange(nc), np.arange(nr))
 
         # Compute transform to map the internal voxel coordinates to FSL scaled mm coordinates
-        pixdim1, pixdim2, pixdim3 = self.input_nii.header.get('pixdim')[1:4]
-
-        dim1 = self.input_nii.header.get('dim')[1]
+        pixdim1, pixdim2, pixdim3 = self.input_nii.header.get_zooms()[:3]
+        dim1 = self.input_nii.shape[0]
 
         # TODO: figure out if that logic works
         if np.linalg.det(self.input_nii.affine) > 0:
