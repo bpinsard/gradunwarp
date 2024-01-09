@@ -11,7 +11,7 @@ def test_siemens_B():
     R0 = siemens_coeffs.R0_m  * 1000
 
     vec = np.linspace(-300, 300, 60, dtype=np.float32)
-    x, y ,z = utils.meshgrid(vec, vec, vec)
+    x, y ,z = np.meshgrid(vec, vec, vec)
 
     bx = siemens_B(siemens_coeffs.alpha_x, siemens_coeffs.beta_x, x, y, z, R0)
     ref_bx = np.load('gradunwarp/core/tests/data/siemens_B_output.npz')['bx']

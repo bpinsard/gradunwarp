@@ -73,7 +73,7 @@ class Unwarper(object):
         fovmax = fovmax * 1000.
         # the grid in meters. this is needed for spherical harmonics
         vec = np.linspace(fovmin, fovmax, numpoints)
-        gvx, gvy, gvz = utils.meshgrid(vec, vec, vec)
+        gvx, gvy, gvz = np.meshgrid(vec, vec, vec)
         # mm
         cf = (fovmax - fovmin) / numpoints
 
@@ -87,8 +87,8 @@ class Unwarper(object):
         g_xyz2rcs = np.linalg.inv(g_rcs2xyz)
 
         # indices into the gradient displacement vol
-        gr, gc, gs = utils.meshgrid(np.arange(numpoints), np.arange(numpoints),
-                                 np.arange(numpoints), dtype=np.float32)
+        gr, gc, gs = np.meshgrid(np.arange(numpoints), np.arange(numpoints),
+                                 np.arange(numpoints))
 
         log.info('Evaluating spherical harmonics')
         log.info('on a ' + str(numpoints) + '^3 grid')
@@ -189,7 +189,7 @@ class Unwarper(object):
         dvz = np.zeros((nr, nc), dtype=np.float32)
         im_ = np.zeros((nr, nc), dtype=np.float32)
         # init jacobian temp image
-        vc, vr = utils.meshgrid(np.arange(nc), np.arange(nr))
+        vc, vr = np.meshgrid(np.arange(int(nc)), np.arange(int(nr)))
 
         # Compute transform to map the internal voxel coordinates to FSL scaled mm coordinates
         img = nib.load(self.name)
@@ -231,18 +231,18 @@ class Unwarper(object):
             vrcs = CV(vr, vc, vs)
             vxyz = utils.transform_coordinates(vrcs, m_rcs2lai_nohalf)
             vrcsg = utils.transform_coordinates(vxyz, g_xyz2rcs)
-            ndimage.interpolation.map_coordinates(dv.x,
-                                                  vrcsg,
-                                                  output=dvx,
-                                                  order=self.order)
-            ndimage.interpolation.map_coordinates(dv.y,
-                                                  vrcsg,
-                                                  output=dvy,
-                                                  order=self.order)
-            ndimage.interpolation.map_coordinates(dv.z,
-                                                  vrcsg,
-                                                  output=dvz,
-                                                  order=self.order)
+            ndimage.map_coordinates(dv.x,
+                                    vrcsg,
+                                    output=dvx,
+                                    order=self.order)
+            ndimage.map_coordinates(dv.y,
+                                    vrcsg,
+                                    output=dvy,
+                                    order=self.order)
+            ndimage.map_coordinates(dv.z,
+                                    vrcsg,
+                                    output=dvz,
+                                    order=self.order)
             # new locations of the image voxels in XYZ ( LAI ) coords
 
             #dvx.fill(0.)
@@ -261,7 +261,7 @@ class Unwarper(object):
 
 
             #im_ = utils.interp3(self.vol, vrcsw.x, vrcsw.y, vrcsw.z)
-            ndimage.interpolation.map_coordinates(self.vol,
+            ndimage.map_coordinates(self.vol,
                                                   vrcsw,
                                                   output=im_,
                                                   order=self.order)
@@ -285,7 +285,7 @@ class Unwarper(object):
                 if self.polarity == -1:
                     vjacdet_lps = 1. / vjacdet_lps
 
-                ndimage.interpolation.map_coordinates(vjacdet_lps,
+                ndimage.map_coordinates(vjacdet_lps,
                                                       vrcsg,
                                                       output=vjacdet_lpsw,
                                                       order=self.order)
