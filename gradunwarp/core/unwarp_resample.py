@@ -145,7 +145,6 @@ class Unwarper(object):
         if self.vendor == 'siemens':
             self.out, self.vjacout = self.non_linear_unwarp_siemens(self.vol.shape, dv, dxyz,
                                                                  m_rcs2lai, m_rcs2lai_nohalf, g_xyz2rcs)
-        del dv, g_xyz2rcs, self.vjacout
 
     def non_linear_unwarp_siemens(self, volshape, dv, dxyz, m_rcs2lai, m_rcs2lai_nohalf, g_xyz2rcs):
         ''' Performs the crux of the unwarping.
@@ -306,7 +305,6 @@ class Unwarper(object):
         img=nib.Nifti1Image(fullWarp, self.m_rcs2ras)
         nib.save(img,"fullWarp_abs.nii.gz")
         # return image and the jacobian
-        del vrcsw, vfsl, vxyzw, vrcs, vxyz, vrcsg, fullWarp
         return out, vjacout
 
     def write(self, outfile):
