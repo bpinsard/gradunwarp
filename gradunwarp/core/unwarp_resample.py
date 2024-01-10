@@ -167,23 +167,23 @@ class Unwarper(object):
         log.info('Evaluating the jacobian multiplier')
         nr, nc, ns = self.vol.shape[:3]
         if not self.nojac:
-            jim2 = np.zeros((nr, nc), dtype=np.float32)
-            vjacdet_lpsw = np.zeros((nr, nc), dtype=np.float32)
+            jim2 = np.empty((nr, nc), dtype=np.float32)
+            vjacdet_lpsw = np.empty((nr, nc), dtype=np.float32)
             if dxyz == 0:
                 vjacdet_lps = 1
             else:
                 vjacdet_lps = eval_siemens_jacobian_mult(dv, dxyz)
 
         # essentially pre-allocating everything
-        out = np.zeros((nr, nc, ns), dtype=np.float32)
-        fullWarp = np.zeros((nr, nc, ns, 3), dtype=np.float32)
+        out = np.empty((nr, nc, ns), dtype=np.float32)
+        fullWarp = np.empty((nr, nc, ns, 3), dtype=np.float32)
 
-        vjacout = np.zeros((nr, nc, ns), dtype=np.float32)
-        im2 = np.zeros((nr, nc), dtype=np.float32)
-        dvx = np.zeros((nr, nc), dtype=np.float32)
-        dvy = np.zeros((nr, nc), dtype=np.float32)
-        dvz = np.zeros((nr, nc), dtype=np.float32)
-        im_ = np.zeros((nr, nc), dtype=np.float32)
+        vjacout = np.empty((nr, nc, ns), dtype=np.float32)
+        im2 = np.empty((nr, nc), dtype=np.float32)
+        dvx = np.empty((nr, nc), dtype=np.float32)
+        dvy = np.empty((nr, nc), dtype=np.float32)
+        dvz = np.empty((nr, nc), dtype=np.float32)
+        im_ = np.empty((nr, nc), dtype=np.float32)
         # init jacobian temp image
         vc, vr = np.meshgrid(np.arange(nc), np.arange(nr))
 
