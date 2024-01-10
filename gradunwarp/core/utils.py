@@ -21,9 +21,8 @@ CoordsVector = namedtuple('CoordsVector', 'x, y, z')
 from nibabel.affines import apply_affine
 
 def transform_coordinates(A, M):
-    vecs = np.asanyarray([A.x,A.y,A.z]).T
-    vecs_trans = apply_affine(M, vecs)
-    return CoordsVector(vecs_trans[...,0].T, vecs_trans[...,1].T, vecs_trans[...,2].T)
+    transformed = apply_affine(M, np.stack(A).T).T
+    return CoordsVector(*transformed)
 
 def get_vol_affine(infile):
     try:
