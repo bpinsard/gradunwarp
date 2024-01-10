@@ -86,10 +86,6 @@ class Unwarper(object):
         # get the grid to rcs transformation also
         g_xyz2rcs = np.linalg.inv(g_rcs2xyz)
 
-        # indices into the gradient displacement vol
-        gr, gc, gs = np.meshgrid(np.arange(numpoints), np.arange(numpoints),
-                                 np.arange(numpoints))
-
         log.info('Evaluating spherical harmonics')
         log.info('on a ' + str(numpoints) + '^3 grid')
         log.info('with extents ' + str(fovmin) + 'mm to ' + str(fovmax) + 'mm')
@@ -189,7 +185,7 @@ class Unwarper(object):
         dvz = np.zeros((nr, nc), dtype=np.float32)
         im_ = np.zeros((nr, nc), dtype=np.float32)
         # init jacobian temp image
-        vc, vr = np.meshgrid(np.arange(int(nc)), np.arange(int(nr)))
+        vc, vr = np.meshgrid(np.arange(nc), np.arange(nr))
 
         # Compute transform to map the internal voxel coordinates to FSL scaled mm coordinates
         img = nib.load(self.name)
@@ -396,7 +392,8 @@ def siemens_B(alpha, beta, x1, y1, z1, R0):
 
     # convert to spherical coordinates
     r = np.sqrt(x1 * x1 + y1 * y1 + z1 * z1)
-    theta = np.arccos(z1 / r)
+    cosine_theta = z1 / r
+    theta = np.arccos(cosine_theta)
     phi = np.arctan2(y1 / r, x1 / r)
 
     b = np.zeros(x1.shape)
@@ -404,15 +401,13 @@ def siemens_B(alpha, beta, x1, y1, z1, R0):
         f = np.power(r / R0, n)
         for m in range(0, n + 1):
             f2 = alpha[n, m] * np.cos(m * phi) + beta[n, m] * np.sin(m * phi)
-            #_ptemp = utils.legendre(n, m, np.cos(theta))
-            _p = scipy.special.lpmv(m, n, np.cos(theta))
-            normfact = 1
+            _p = scipy.special.lpmv(m, n, cosine_theta)
             # this is Siemens normalization
             if m > 0:
                 normfact = math.pow(-1, m) * \
                 math.sqrt(float((2 * n + 1) * factorial(n - m)) \
                           / float(2 * factorial(n + m)))
-            _p *= normfact
+                _p *= normfact
             b += f * _p * f2
     return b
 
