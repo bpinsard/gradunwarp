@@ -215,14 +215,6 @@ class Unwarper(object):
             else:
                 print('.', end=' ')
 
-            # hopefully, free memory
-            gc.collect()
-            # init to 0
-            dvx.fill(0.)
-            dvy.fill(0.)
-            dvz.fill(0.)
-            im_.fill(0.)
-
             vs = np.ones(vr.shape) * s
             vrcs = CV(vr, vc, vs)
             vxyz = utils.transform_coordinates(vrcs, m_rcs2lai_nohalf)
@@ -241,10 +233,6 @@ class Unwarper(object):
                                     order=self.order)
             # new locations of the image voxels in XYZ ( LAI ) coords
 
-            #dvx.fill(0.)
-            #dvy.fill(0.)
-            #dvz.fill(0.)
-
             vxyzw = CV(x=vxyz.x + self.polarity * dvx,
                        y=vxyz.y + self.polarity * dvy,
                        z=vxyz.z + self.polarity * dvz)
@@ -258,35 +246,25 @@ class Unwarper(object):
 
             #im_ = utils.interp3(self.vol, vrcsw.x, vrcsw.y, vrcsw.z)
             ndimage.map_coordinates(self.vol,
-                                                  vrcsw,
-                                                  output=im_,
-                                                  order=self.order)
+                                    vrcsw,
+                                    output=im_,
+                                    order=self.order)
             # find NaN voxels, and set them to 0
-            im_[np.where(np.isnan(im_))] = 0.
-            im_[np.where(np.isinf(im_))] = 0.
+            np.nan_to_num(im_, copy=False, posinf=0, neginf=0)
             im2[vr, vc] = im_
-
-            #img = nib.Nifti1Image(dvx,np.eye(4))
-            #nib.save(img,"x"+str(s).zfill(3)+".nii.gz")
-            #img = nib.Nifti1Image(dvy,np.eye(4))
-            #nib.save(img,"y"+str(s).zfill(3)+".nii.gz")
-            #img = nib.Nifti1Image(dvz,np.eye(4))
-            #nib.save(img,"z"+str(s).zfill(3)+".nii.gz")
 
             # Multiply the intensity with the Jacobian det, if needed
             if not self.nojac:
-                vjacdet_lpsw.fill(0.)
                 jim2.fill(0.)
                 # if polarity is negative, the jacobian is also inversed
                 if self.polarity == -1:
                     vjacdet_lps = 1. / vjacdet_lps
 
                 ndimage.map_coordinates(vjacdet_lps,
-                                                      vrcsg,
-                                                      output=vjacdet_lpsw,
-                                                      order=self.order)
-                vjacdet_lpsw[np.where(np.isnan(vjacdet_lpsw))] = 0.
-                vjacdet_lpsw[np.where(np.isinf(vjacdet_lpsw))] = 0.
+                                        vrcsg,
+                                        output=vjacdet_lpsw,
+                                        order=self.order)
+                np.nan_to_num(vjacdet_lpsw, copy=False, posinf=0, neginf=0)
                 jim2[vr, vc] = vjacdet_lpsw
                 im2 = im2 * jim2
                 vjacout[..., s] = jim2
@@ -420,7 +398,8 @@ def ge_D(alpha, beta, x1, y1, z1):
     x1 = x1 + 0.0001  # hack to avoid singularities
     r = np.sqrt(x1 * x1 + y1 * y1 + z1 * z1)
     # For consistency with GE papers, use theta & phi -> phi & theta
-    phi = np.arccos(z1 / r)
+    cosine_phi = z1 / r
+    phi = np.arccos(cosine_phi)
     theta = np.arctan2(y1 / r, x1 / r)
 
     r = r * 100.0  # GE wants cm, so meters -> cm
@@ -432,7 +411,7 @@ def ge_D(alpha, beta, x1, y1, z1):
         for m in range(0, n + 1):
             f2 = alpha[n, m] * np.cos(m * theta) + beta[n, m] \
             * np.sin(m * theta)
-            _p = scipy.special.lpmv(m, n, np.cos(phi))
+            _p = scipy.special.lpmv(m, n, cosine_phi)
             d += f * _p * f2
     d = d / 100.0  # cm back to meters
     return d
