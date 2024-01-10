@@ -3,9 +3,7 @@
 Most configuration is now in pyproject.toml. This file configures
 extensions and a legacy script.
 """
-from setuptools import setup, Extension
-from numpy import get_include
-
+from setuptools import setup
 
 setup(
     ext_modules=[
