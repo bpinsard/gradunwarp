@@ -13,8 +13,12 @@ def test_siemens_B():
     vec = np.linspace(-300, 300, 60, dtype=np.float32)
     x, y ,z = np.meshgrid(vec, vec, vec)
 
-    bx = siemens_B(siemens_coeffs.alpha_x, siemens_coeffs.beta_x, x, y, z, R0)
-    ref_bx = np.load('gradunwarp/core/tests/data/siemens_B_output.npz')['bx']
+    ref_b = np.load('gradunwarp/core/tests/data/siemens_B_output.npz')
 
-    # changes in legendre function is causing differences at 6th decimal
-    assert_array_almost_equal(ref_bx, bx, decimal=5)
+    for d in 'xyz':
+        alpha_d = getattr(siemens_coeffs, f"alpha_{d}")
+        beta_d = getattr(siemens_coeffs, f"beta_{d}")
+        bd = siemens_B(alpha_d, beta_d, x, y, z, R0)
+
+        # changes in legendre function is causing differences at 6th decimal
+        assert_array_almost_equal(ref_b[f"b{d}"], bd, decimal=4)
