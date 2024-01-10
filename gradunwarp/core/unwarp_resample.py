@@ -338,43 +338,43 @@ def eval_spherical_harmonics(coeffs, vendor, vxyz):
 
     x, y, z = vxyz
 
-    #pdb.set_trace()
-    # log.info('calculating displacements (mm) '
-    #        'using spherical harmonics coeffcients...')
+    r, cos_theta, theta, phi = cart2sph(x, y, z)
+
     if vendor == 'siemens':
         log.info('along x...')
-        bx = siemens_B(coeffs.alpha_x, coeffs.beta_x, x, y, z, R0)
+        bx = siemens_B(coeffs.alpha_x, coeffs.beta_x, r, cos_theta, theta, phi, R0)
         log.info('along y...')
-        by = siemens_B(coeffs.alpha_y, coeffs.beta_y, x, y, z, R0)
+        by = siemens_B(coeffs.alpha_y, coeffs.beta_y, r, cos_theta, theta, phi, R0)
         log.info('along z...')
-        bz = siemens_B(coeffs.alpha_z, coeffs.beta_z, x, y, z, R0)
+        bz = siemens_B(coeffs.alpha_z, coeffs.beta_z, r, cos_theta, theta, phi, R0)
     else:
         # GE
         log.info('along x...')
-        bx = ge_D(coeffs.alpha_x, coeffs.beta_x, x, y, z)
+        bx = ge_D(coeffs.alpha_x, coeffs.beta_x, r, cos_theta, theta, phi)
         log.info('along y...')
-        by = ge_D(coeffs.alpha_y, coeffs.beta_y, x, y, z)
+        by = ge_D(coeffs.alpha_y, coeffs.beta_y, r, cos_theta, theta, phi)
         log.info('along z...')
-        bz = siemens_B(coeffs.alpha_z, coeffs.beta_z, x, y, z, R0)
-        bz = ge_D(coeffs.alpha_z, coeffs.beta_z, x, y, z)
+        bz = ge_D(coeffs.alpha_z, coeffs.beta_z, r, cos_theta, theta, phi)
 
     return CV(bx * R0, by * R0, bz * R0), CV(x, y, z)
 
 
-#@profile
-def siemens_B(alpha, beta, x1, y1, z1, R0):
-    ''' Calculate displacement field from Siemens coefficients
-    '''
-    nmax = alpha.shape[0] - 1
+def cart2sph(x1, y1, z1):
     x1 = x1 + 0.0001  # hack to avoid singularities at R=0
-
     # convert to spherical coordinates
     r = np.sqrt(x1 * x1 + y1 * y1 + z1 * z1)
     cosine_theta = z1 / r
     theta = np.arccos(cosine_theta)
     phi = np.arctan2(y1 / r, x1 / r)
 
-    b = np.zeros(x1.shape)
+    return r, cosine_theta, theta, phi
+
+def siemens_B(alpha, beta, r, cosine_theta, theta, phi, R0):
+    ''' Calculate displacement field from Siemens coefficients
+    '''
+    nmax = alpha.shape[0] - 1
+
+    b = np.zeros(theta.shape)
     for n in range(0, nmax + 1):
         f = np.power(r / R0, n)
         for m in range(0, n + 1):
@@ -389,21 +389,15 @@ def siemens_B(alpha, beta, x1, y1, z1, R0):
             b += f * _p * f2
     return b
 
-
-def ge_D(alpha, beta, x1, y1, z1):
+# For consistency with GE papers, use theta & phi -> phi & theta
+def ge_D(alpha, beta, r, cosine_phi, phi, theta, z1):
     ''' GE Gradwarp coeffs define the error rather than the total
     gradient field'''
 
     nmax = alpha.shape[0] - 1
-    x1 = x1 + 0.0001  # hack to avoid singularities
-    r = np.sqrt(x1 * x1 + y1 * y1 + z1 * z1)
-    # For consistency with GE papers, use theta & phi -> phi & theta
-    cosine_phi = z1 / r
-    phi = np.arccos(cosine_phi)
-    theta = np.arctan2(y1 / r, x1 / r)
 
     r = r * 100.0  # GE wants cm, so meters -> cm
-    d = np.zeros(x1.shape)
+    d = np.zeros(theta.shape)
 
     for n in range(0, nmax + 1):
         # So GE uses the usual unnormalized legendre polys.
