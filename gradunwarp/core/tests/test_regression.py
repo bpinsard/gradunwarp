@@ -24,5 +24,5 @@ def test_siemens_B():
         beta_d = getattr(siemens_coeffs, f"beta_{d}")
         bd = siemens_B(alpha_d, beta_d, r, cos_theta, theta, phi, R0)
 
-        # changes in legendre function is causing differences at 6th decimal
-        assert_array_almost_equal(ref_b[f"b{d}"], bd, decimal=4)
+        # changes in legendre function is causing differences at 5th decimal
+        assert_array_almost_equal(ref_b[f"b{d}"], bd, decimal=5)
