@@ -2,8 +2,7 @@ import os
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 
 import numpy as np
-from numpy.testing import assert_equal, assert_array_equal, \
-    assert_array_almost_equal, assert_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_allclose
 
 from gradunwarp.core import coeffs, utils
 from gradunwarp.core.unwarp_resample import siemens_B, cart2sph
