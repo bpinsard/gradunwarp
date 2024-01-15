@@ -84,12 +84,12 @@ def get_siemens_coef(cfile):
     coef_file_parse(cfile, txt_var_map)
 
     return Coeffs(
-        txt_var_map['Alpha_y'],
-        txt_var_map['Alpha_z'],
-        txt_var_map['Alpha_x'],
-        txt_var_map['Beta_y'],
-        txt_var_map['Beta_x'],
-        txt_var_map['Beta_z'],
+        txt_var_map['alpha_y'],
+        txt_var_map['alpha_z'],
+        txt_var_map['alpha_x'],
+        txt_var_map['beta_y'],
+        txt_var_map['beta_x'],
+        txt_var_map['beta_z'],
         R0_m)
 
 
@@ -101,12 +101,12 @@ def get_ge_coef(cfile):
     coef_file_parse(cfile, txt_var_map)
 
     return Coeffs(
-        txt_var_map['Alpha_y'],
-        txt_var_map['Alpha_z'],
-        txt_var_map['Alpha_x'],
-        txt_var_map['Beta_y'],
-        txt_var_map['Beta_x'],
-        txt_var_map['Beta_z'],
+        txt_var_map['alpha_y'],
+        txt_var_map['alpha_z'],
+        txt_var_map['alpha_x'],
+        txt_var_map['beta_y'],
+        txt_var_map['beta_x'],
+        txt_var_map['beta_z'],
         R0_m)
 
 def grad_file_parse(gfile, txt_var_map):
@@ -117,7 +117,7 @@ def grad_file_parse(gfile, txt_var_map):
             re_search = re.search("(?P<no>\d+)[\s]+(?P<aorb>[AB])[\s]*\(\s*(?P<x>\d+),\s*(?P<y>\d+)\)\s+(?P<spectrum>[\-]?\d+\.\d+)\s+(?P<axis>[xyz])", line)
             if re_search:
                 re_res = re_search.groupdict()
-                alphabeta = 'Alpha' if re_res['aorb'] == 'A' else 'Beta'
+                alphabeta = 'alpha' if re_res['aorb'] == 'A' else 'beta'
                 x, y = int(re_res['x']),int(re_res['y'])
                 txt_var_map[f"{alphabeta}_{re_res['axis']}"][x, y] = float(re_res['spectrum'])
                 xmax, ymax = max(x, xmax), max(y, ymax)
@@ -128,7 +128,7 @@ def grad_file_parse(gfile, txt_var_map):
     return R0_m, (xmax, ymax)
 
 def create_txt_var_map(coef_array_sz):
-    return {f'{ab}_{axis}': np.zeros((coef_array_sz,)*2 ) for ab in ['Alpha', 'Beta'] for axis in 'xyz'}
+    return {f'{ab}_{axis}': np.zeros((coef_array_sz,)*2 ) for ab in ['alpha', 'beta'] for axis in 'xyz'}
 
 def get_siemens_grad(gfile):
     ''' Parse the siemens .grad file
@@ -142,10 +142,10 @@ def get_siemens_grad(gfile):
     ind = max(max_ind) + 1
 
     return Coeffs(
-        txt_var_map['Alpha_x'][:ind, :ind],
-        txt_var_map['Alpha_y'][:ind, :ind],
-        txt_var_map['Alpha_z'][:ind, :ind],
-        txt_var_map['Beta_x'][:ind, :ind],
-        txt_var_map['Beta_y'][:ind, :ind],
-        txt_var_map['Beta_z'],
+        txt_var_map['alpha_x'][:ind, :ind],
+        txt_var_map['alpha_y'][:ind, :ind],
+        txt_var_map['alpha_z'][:ind, :ind],
+        txt_var_map['beta_x'][:ind, :ind],
+        txt_var_map['beta_y'][:ind, :ind],
+        txt_var_map['beta_z'],
         R0_m)
