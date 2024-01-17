@@ -119,7 +119,8 @@ def grad_file_parse(gfile, txt_var_map):
                 re_res = re_search.groupdict()
                 alphabeta = 'alpha' if re_res['aorb'] == 'A' else 'beta'
                 x, y = int(re_res['x']),int(re_res['y'])
-                txt_var_map[f"{alphabeta}_{re_res['axis']}"][x, y] = float(re_res['spectrum'])
+                field = "%s_%s"%(alphabeta, re_res['axis'])
+                txt_var_map[field][x, y] = float(re_res['spectrum'])
                 xmax, ymax = max(x, xmax), max(y, ymax)
             else:
                 re_search = re.search("(?P<R0>\d+\.\d+) m = R0", line)
@@ -128,7 +129,11 @@ def grad_file_parse(gfile, txt_var_map):
     return R0_m, (xmax, ymax)
 
 def create_txt_var_map(coef_array_sz):
-    return {f'{ab}_{axis}': np.zeros((coef_array_sz,)*2 ) for ab in ['alpha', 'beta'] for axis in 'xyz'}
+    txt_var_map = {}
+    for ab in ['alpha', 'beta']:
+        for axis in 'xyz':
+            txt_var_map['%s_%s'%(ab,axis)] = np.zeros((coef_array_sz,)*2)
+    return txt_var_map
 
 def get_siemens_grad(gfile):
     ''' Parse the siemens .grad file
@@ -137,6 +142,7 @@ def get_siemens_grad(gfile):
     coef_array_sz = 15 if gfile.startswith('coef_AC44') else siemens_cas
 
     txt_var_map = create_txt_var_map(coef_array_sz)
+    print(txt_var_map)
 
     R0_m, max_ind = grad_file_parse(gfile, txt_var_map)
     ind = max(max_ind) + 1

@@ -20,9 +20,9 @@ def test_siemens_B():
     ref_b = np.load(os.path.join(DATA_DIR, 'siemens_B_output.npz'))
 
     for d in 'xyz':
-        alpha_d = getattr(siemens_coeffs, f"alpha_{d}")
-        beta_d = getattr(siemens_coeffs, f"beta_{d}")
+        alpha_d = getattr(siemens_coeffs, "alpha_%s"%d)
+        beta_d = getattr(siemens_coeffs, "beta_%s"%d)
         bd = siemens_B(alpha_d, beta_d, r, cos_theta, theta, phi, R0)
 
         # changes in legendre function is causing differences at 5th decimal
-        assert_array_almost_equal(ref_b[f"b{d}"], bd, decimal=5)
+        assert_array_almost_equal(ref_b["b%s"%d], bd, decimal=5)
