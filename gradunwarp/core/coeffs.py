@@ -46,7 +46,7 @@ def coef_file_parse(cfile, txt_var_map):
     '''
     # parse .coef file. Strip unneeded characters. a valid line in that file is
     # broken into validline_list
-    coef_re = re.compile('^[^\#]')  # regex for first character not a '#'
+    coef_re = re.compile(r'^[^\#]')  # regex for first character not a '#'
     coef_file = open(cfile, 'r')
     for line in coef_file.readlines():
         if coef_re.match(line):
@@ -114,7 +114,7 @@ def grad_file_parse(gfile, txt_var_map):
     ymax = 0
     with open(gfile, 'r') as gf:
         for line in gf:
-            re_search = re.search("(?P<no>\d+)[\s]+(?P<aorb>[AB])[\s]*\(\s*(?P<x>\d+),\s*(?P<y>\d+)\)\s+(?P<spectrum>[\-]?\d+\.\d+)\s+(?P<axis>[xyz])", line)
+            re_search = re.search(r"(?P<no>\d+)[\s]+(?P<aorb>[AB])[\s]*\(\s*(?P<x>\d+),\s*(?P<y>\d+)\)\s+(?P<spectrum>[\-]?\d+\.\d+)\s+(?P<axis>[xyz])", line)
             if re_search:
                 re_res = re_search.groupdict()
                 alphabeta = 'alpha' if re_res['aorb'] == 'A' else 'beta'
@@ -123,7 +123,7 @@ def grad_file_parse(gfile, txt_var_map):
                 txt_var_map[field][x, y] = float(re_res['spectrum'])
                 xmax, ymax = max(x, xmax), max(y, ymax)
             else:
-                re_search = re.search("(?P<R0>\d+\.\d+) m = R0", line)
+                re_search = re.search(r"(?P<R0>\d+\.\d+) m = R0", line)
                 if re_search:
                     R0_m = float(re_search.group('R0'))
     return R0_m, (xmax, ymax)
