@@ -250,7 +250,8 @@ class Unwarper(object):
                                     output=im_,
                                     order=self.order)
             # find NaN voxels, and set them to 0
-            np.nan_to_num(im_, copy=False, posinf=0, neginf=0)
+            np.nan_to_num(im_, copy=False)
+            im_[np.isinf(im_)] = 0
             im2[vr, vc] = im_
 
             # Multiply the intensity with the Jacobian det, if needed
@@ -264,7 +265,8 @@ class Unwarper(object):
                                         vrcsg,
                                         output=vjacdet_lpsw,
                                         order=self.order)
-                np.nan_to_num(vjacdet_lpsw, copy=False, posinf=0, neginf=0)
+                np.nan_to_num(vjacdet_lpsw, copy=False)
+                vjacdet_lpsw[np.isinf(vjacdet_lpsw)] = 0
                 jim2[vr, vc] = vjacdet_lpsw
                 im2 = im2 * jim2
                 vjacout[..., s] = jim2
